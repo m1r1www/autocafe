@@ -23,5 +23,5 @@
 ## Сборка и запуск
 
 ```bash
-g++ main.cpp  -o cafe
-./cafe
+g++  *.cpp -o app
+./app
