@@ -23,5 +23,30 @@
 ## Сборка и запуск
 
 ```bash
-g++ main.cpp  -o cafe
-./cafe
+g++ *.cpp  -o app
+./app
+
+# Кафе-автомат — лабораторная работа №2
+
+Учебная демонстрационная программа на C++.
+
+## Состав
+- `ingredient.hpp` / `ingredient.cpp` — класс `Ingredient`.
+- `vending_machine.hpp` / `vending_machine.cpp` — класс `VendingMachine`.
+- `machine_operator.hpp` / `machine_operator.cpp` — класс `MachineOperator`.
+- `main.cpp` — демонстрация.
+
+
+Дополнительные файлы сборки не нужны. `tests.cpp` в проект не входит.
+
+## Демонстрируется
+- private-поля;
+- конструкторы и деструкторы;
+- предметные методы;
+- проверка недостатка ингредиента;
+- статический объект, ссылка и указатель;
+- `new/delete`, `new[]/delete[]`;
+- массив указателей на динамические объекты;
+- композиция `VendingMachine` → `Ingredient`;
+- агрегация `MachineOperator` → `VendingMachine`;
+- порядок уничтожения объектов.
