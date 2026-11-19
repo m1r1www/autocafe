@@ -3,6 +3,7 @@
 #include "vending_machine.hpp"
 
 #include <iostream>
+#include <memory>
 
 int main()
 {
@@ -10,65 +11,86 @@ int main()
     using cafe::MachineOperator;
     using cafe::VendingMachine;
 
-    std::cout << "=== КАФЕ-АВТОМАТ: демонстрация лабораторной ===\n\n";
+    std::cout << "=== ЛР 3, часть 2: умные указатели ===\n\n";
 
-    std::cout << "1. Статический объект, ссылка и указатель\n";
+    std::cout << "0. Статический объект (как в ЛР 2)\n";
     static Ingredient milk("Молоко", 50, 100);
-    Ingredient& milkRef = milk;
-    Ingredient* milkPtr = &milk;
-    milkRef.Print();
-    milkPtr->Consume(10);
     milk.Print();
 
-    std::cout << "\n2. Динамическая память\n";
-    Ingredient* sugar = new Ingredient("Сахар", 30, 50);
-    sugar->Print();
-    delete sugar;
-
-    std::cout << "-- динамический массив объектов\n";
-    Ingredient* array = new Ingredient[2];
-    array[0].Setup("Какао", 10, 50);
-    array[1].Setup("Чай", 20, 50);
-    array[0].Load(10);
-    array[1].Load(20);
-    array[0].Print();
-    array[1].Print();
-    delete[] array;
-
-    std::cout << "-- массив динамических объектов\n";
-    Ingredient* pointers[2] = { new Ingredient("Вода", 100, 200), new Ingredient("Сироп", 40, 50) };
-    pointers[0]->Print();
-    pointers[1]->Print();
-    delete pointers[0];
-    delete pointers[1];
-
-    std::cout << "\n3. Композиция: автомат владеет ингредиентом\n";
+    // ------------------------------------------------------------------ unique_ptr
+    std::cout << "\n1. unique_ptr: один владелец\n";
     {
-        VendingMachine temporary("Временный автомат", 40);
-        temporary.PrintState();
-        temporary.MakeCoffee();
-        temporary.PrintState();
-        std::cout << "-- выход из блока: автомат и его ингредиент уничтожаются\n";
+        std::unique_ptr<Ingredient> sugar = std::make_unique<Ingredient>("Сахар", 30, 50);
+        sugar->Print();
+        std::cout << "-- выход из блока: освобождать память вручную не нужно\n";
+    }
+    std::cout << "-- блок закрыт, Сахар уже уничтожен\n";
+
+    std::cout << "-- передача владения через std::move\n";
+    {
+        std::unique_ptr<Ingredient> honey    = std::make_unique<Ingredient>("Мёд", 20, 40);
+        std::unique_ptr<Ingredient> newOwner = std::move(honey);
+        if (!honey)
+        {
+            std::cout << "honey пуст: владение передано\n";
+        }
+        newOwner->Print();
+        std::cout << "-- выход из блока\n";
     }
 
-    std::cout << "\n4. Агрегация: оператор использует готовый автомат\n";
-    VendingMachine machine("Автомат-1", 40);
+    std::cout << "-- динамический массив: unique_ptr<Ingredient[]>\n";
     {
-        MachineOperator operatorOnDuty("Оператор-1", machine);
-        // machine.Stop(); и machine.RestockCoffee(20); не скомпилируются: доступны только оператору
-        operatorOnDuty.AddCoffee(20);
-        machine.PrintState();
-        machine.MakeCoffee();
-        machine.MakeCoffee();
-        machine.MakeCoffee();
-        std::cout << "-- проверка правила: кофе закончился\n";
-        machine.MakeCoffee();
-        operatorOnDuty.StopMachine();
-        machine.MakeCoffee();
-        operatorOnDuty.StartMachine();
+        std::unique_ptr<Ingredient[]> array = std::make_unique<Ingredient[]>(2);
+        array[0].Setup("Какао", 10, 50);
+        array[1].Setup("Чай", 20, 50);
+        array[0].Print();
+        array[1].Print();
+        std::cout << "-- выход из блока\n";
     }
-    std::cout << "-- оператор уничтожен, но автомат продолжает существовать\n";
-    machine.PrintState();
+
+    std::cout << "-- массив из unique_ptr на отдельные объекты\n";
+    {
+        std::unique_ptr<Ingredient> pointers[2];
+        pointers[0] = std::make_unique<Ingredient>("Вода", 100, 200);
+        pointers[1] = std::make_unique<Ingredient>("Сироп", 40, 50);
+        pointers[0]->Print();
+        pointers[1]->Print();
+        std::cout << "-- выход из блока\n";
+    }
+
+    // ------------------------------------------------------------------ shared_ptr
+    std::cout << "\n2. shared_ptr: несколько владельцев\n";
+    std::shared_ptr<VendingMachine> machine = std::make_shared<VendingMachine>("Автомат-1", 40);
+    std::cout << "владельцев автомата: " << machine.use_count() << '\n';
+    {
+        std::shared_ptr<VendingMachine> second = machine;
+        std::cout << "после копирования указателя: " << machine.use_count() << '\n';
+        std::cout << "-- выход из блока: копия исчезла, автомат жив\n";
+    }
+    std::cout << "после выхода из блока: " << machine.use_count() << '\n';
+
+    // ------------------------------------------------------------------ weak_ptr
+    std::cout << "\n3. weak_ptr: оператор наблюдает за автоматом\n";
+    MachineOperator operatorOnDuty("Оператор-1", machine);
+    std::cout << "владельцев автомата (оператор не владеет): " << machine.use_count() << '\n';
+    operatorOnDuty.PrintStatus();
+
+    operatorOnDuty.AddCoffee(20);
+    machine->PrintState();
+    machine->MakeCoffee();
+    machine->MakeCoffee();
+    machine->MakeCoffee();
+    std::cout << "-- проверка правила: кофе закончился\n";
+    machine->MakeCoffee();
+    operatorOnDuty.StopMachine();
+    machine->MakeCoffee();
+    operatorOnDuty.StartMachine();
+
+    std::cout << "-- последний владелец отказывается от автомата\n";
+    machine.reset();
+    std::cout << "-- автомат уничтожен, оператор ещё жив\n";
+    operatorOnDuty.PrintStatus();
+    operatorOnDuty.AddCoffee(10);
 
     std::cout << "\n=== Конец программы ===\n";
     return 0;

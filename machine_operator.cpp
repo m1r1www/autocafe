@@ -5,11 +5,12 @@
 namespace cafe
 {
 
-MachineOperator::MachineOperator(std::string_view name, VendingMachine& machine)
+MachineOperator::MachineOperator(std::string_view name, const std::shared_ptr<VendingMachine>& machine)
     : m_name{ name }
-    , m_machine{ &machine }
+    , m_machine{ machine }
 {
-    std::cout << "[MachineOperator] создан: " << m_name << ", закреплён за '" << machine.GetName() << "'\n";
+    std::cout << "[MachineOperator] создан: " << m_name << ", закреплён за '"
+              << (machine ? machine->GetName() : std::string_view("(нет автомата)")) << "'\n";
 }
 
 MachineOperator::~MachineOperator()
@@ -17,21 +18,60 @@ MachineOperator::~MachineOperator()
     std::cout << "[MachineOperator] уничтожается: " << m_name << " (автомат не удаляется)\n";
 }
 
+std::shared_ptr<VendingMachine> MachineOperator::GetMachine() const
+{
+    std::shared_ptr<VendingMachine> machine = m_machine.lock();
+    if (!machine)
+    {
+        std::cout << "[MachineOperator] ОТКАЗ: автомат уже уничтожен\n";
+    }
+    return machine;
+}
+
 bool MachineOperator::AddCoffee(int amount)
 {
-    return m_machine->RestockCoffee(amount);
+    std::shared_ptr<VendingMachine> machine = GetMachine();
+    return machine && machine->RestockCoffee(amount);
 }
 
-void MachineOperator::StartMachine()
+bool MachineOperator::StartMachine()
 {
-    m_machine->Start();
+    std::shared_ptr<VendingMachine> machine = GetMachine();
+    if (!machine)
+    {
+        return false;
+    }
+
+    machine->Start();
     std::cout << "[MachineOperator] автомат запущен\n";
+    return true;
 }
 
-void MachineOperator::StopMachine()
+bool MachineOperator::StopMachine()
 {
-    m_machine->Stop();
+    std::shared_ptr<VendingMachine> machine = GetMachine();
+    if (!machine)
+    {
+        return false;
+    }
+
+    machine->Stop();
     std::cout << "[MachineOperator] автомат остановлен\n";
+    return true;
+}
+
+void MachineOperator::PrintStatus() const
+{
+    std::shared_ptr<VendingMachine> machine = m_machine.lock();
+    if (machine)
+    {
+        std::cout << "  Оператор " << m_name << ": автомат '" << machine->GetName()
+                  << "' жив (lock() вернул указатель)\n";
+    }
+    else
+    {
+        std::cout << "  Оператор " << m_name << ": автомат уничтожен (lock() вернул пустой указатель)\n";
+    }
 }
 
 } // namespace cafe
