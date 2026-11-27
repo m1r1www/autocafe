@@ -1,9 +1,6 @@
-namespace Cafe;
+namespace CampusVending;
 
-/// <summary>
-/// Сумма денег. Это структура (тип-значение): присваивание копирует значение целиком.
-/// Нужна для сравнения со ссылочным типом (классом) в демонстрации.
-/// </summary>
+/// <summary>Структура-значение из предыдущей работы.</summary>
 public struct Money
 {
     public int Rubles { get; set; }
