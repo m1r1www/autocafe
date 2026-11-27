@@ -31,3 +31,6 @@ CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
 
+# C# build artifacts
+csharp/obj/
+csharp/bin/

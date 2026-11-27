@@ -2,36 +2,41 @@
 
 #include "vending_machine.hpp"
 
+#include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 
-namespace cafe
+namespace campus_vending
 {
 
-// Оператор: сотрудник, обслуживающий автомат.
-// Связь с автоматом — агрегация: оператор хранит указатель на автомат, созданный снаружи,
-// не создаёт и не уничтожает его; автомат должен пережить оператора.
-// Правило 16: пополнять запасы и менять состояние автомата можно только через оператора.
+// Оператор агрегирует автоматы: хранит слабые ссылки и не владеет ими.
 class MachineOperator
 {
 private:
     std::string m_name{};
-    VendingMachine* m_machine{ nullptr }; // агрегация: не владеем, не удаляем
+    std::vector<std::weak_ptr<VendingMachine>> m_machines{};
+
+    [[nodiscard]] bool CheckAssigned(const std::shared_ptr<VendingMachine>& machine) const;
 
 public:
-    MachineOperator(std::string_view name, VendingMachine& machine);
-    MachineOperator(const MachineOperator&)            = delete;
-    MachineOperator& operator=(const MachineOperator&) = delete;
+    explicit MachineOperator(std::string_view name);
+    MachineOperator(std::string_view name, const std::shared_ptr<VendingMachine>& machine);
     ~MachineOperator();
 
-    bool AddCoffee(int amount);
-    void StartMachine();
-    void StopMachine();
+    bool Assign(const std::shared_ptr<VendingMachine>& machine);
+    bool Unassign(const std::shared_ptr<VendingMachine>& machine);
+    [[nodiscard]] bool IsAssigned(const std::shared_ptr<VendingMachine>& machine) const;
 
-    [[nodiscard]] std::string_view GetName() const
-    {
-        return m_name;
-    }
+    bool LoadIngredient(const std::shared_ptr<VendingMachine>& machine, std::string_view name,
+                        int capacity, int amount, int expiryDay);
+    bool Restock(const std::shared_ptr<VendingMachine>& machine, std::string_view name, int amount);
+    bool AddCups(const std::shared_ptr<VendingMachine>& machine, int count);
+    bool AddChange(const std::shared_ptr<VendingMachine>& machine, int amount);
+    bool StartMaintenance(const std::shared_ptr<VendingMachine>& machine);
+    bool FinishMaintenance(const std::shared_ptr<VendingMachine>& machine);
+
+    void PrintInfo() const;
 };
 
-} // namespace cafe
+} // namespace campus_vending
