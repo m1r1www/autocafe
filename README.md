@@ -66,6 +66,3 @@ dotnet run --project csharp/CampusVending.csproj
 10. Продажа кофе, батончиков и лапши через каталог автомата с проверкой оплаты и сдачи.
 11. Сравнение товаров C# с учётом специальных характеристик каждого типа.
 
-## Примечание о проверке
-
-C++-часть собрана и запущена с предупреждениями `-Wall -Wextra -Wpedantic`, дополнительно проверена AddressSanitizer и UndefinedBehaviorSanitizer. В среде подготовки не установлен .NET SDK (`dotnet` отсутствует), поэтому C#-часть подготовлена под .NET 8, но локально не компилировалась. Перед сдачей выполните две команды из корня проекта: `dotnet build csharp/CampusVending.csproj` и `dotnet run --project csharp/CampusVending.csproj`.
