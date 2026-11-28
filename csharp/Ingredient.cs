@@ -1,10 +1,7 @@
-namespace Cafe;
+namespace CampusVending;
 
-/// <summary>
-/// Ингредиент: название, текущий запас и вместимость.
-/// Правило: запас не бывает отрицательным и не превышает вместимость.
-/// </summary>
-public class Ingredient
+/// <summary>Ингредиент из предыдущей версии проекта; автомат создаёт его сам (композиция).</summary>
+public sealed class Ingredient
 {
     public string Name { get; }
     public int Capacity { get; }
@@ -14,37 +11,21 @@ public class Ingredient
     {
         Name = name;
         Capacity = Math.Max(capacity, 0);
-        // запас приводим к границам 0..вместимость
-        Amount = Math.Min(Math.Max(amount, 0), Capacity);
-
-        if (Amount != amount || Capacity != capacity)
-        {
-            Console.WriteLine($"[Ingredient] ОТКАЗ: запас '{name}' должен быть в пределах 0..{Capacity}, установлено {Amount}");
-        }
-        Console.WriteLine($"[Ingredient] создан: {name}");
+        Amount = Math.Clamp(amount, 0, Capacity);
+        Console.WriteLine($"[Ingredient] создан: {Name}");
     }
 
-    /// <summary>Пополнить запас.</summary>
-    public bool Load(int value)
+    public bool Load(int amount)
     {
-        if (value <= 0 || Amount + value > Capacity)
-        {
-            Console.WriteLine($"[Ingredient] ОТКАЗ: нельзя добавить {value} ед. ингредиента '{Name}'");
-            return false;
-        }
-        Amount += value;
+        if (amount <= 0 || Amount + amount > Capacity) return false;
+        Amount += amount;
         return true;
     }
 
-    /// <summary>Списать часть запаса.</summary>
-    public bool Consume(int value)
+    public bool Consume(int amount)
     {
-        if (value <= 0 || value > Amount)
-        {
-            Console.WriteLine($"[Ingredient] ОТКАЗ: недостаточно '{Name}'");
-            return false;
-        }
-        Amount -= value;
+        if (amount <= 0 || amount > Amount) return false;
+        Amount -= amount;
         return true;
     }
 

@@ -1,9 +1,6 @@
-namespace Cafe;
+namespace CampusVending;
 
-/// <summary>
-/// Журнал продаж. Нужен для демонстрации освобождения ресурса без деструктора:
-/// при выходе из блока using автоматически вызывается Dispose().
-/// </summary>
+/// <summary>Журнал с IDisposable, сохранённый из предыдущей работы.</summary>
 public sealed class SalesLog : IDisposable
 {
     private readonly string _title;
@@ -12,17 +9,14 @@ public sealed class SalesLog : IDisposable
     public SalesLog(string title)
     {
         _title = title;
-        Console.WriteLine($"[+] журнал открыт: {title}");
+        Console.WriteLine($"[+] журнал открыт: {_title}");
     }
 
-    public void Record(string drink, bool success)
+    public void Record(string line)
     {
         _records++;
-        Console.WriteLine($"    запись {_records}: {drink} - {(success ? "выдан" : "отказ")}");
+        Console.WriteLine($"    запись {_records}: {line}");
     }
 
-    public void Dispose()
-    {
-        Console.WriteLine($"[-] журнал закрыт: {_title} (записей: {_records})");
-    }
+    public void Dispose() => Console.WriteLine($"[-] журнал закрыт: {_title} (записей: {_records})");
 }

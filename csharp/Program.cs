@@ -1,79 +1,75 @@
-using System.Runtime.CompilerServices;
-using Cafe;
+using VendingCatalog = CampusVending.VendingMachine;
+using static System.Console;
+using CampusVending;
 
-/// <summary>Демонстрационная программа ЛР 3, часть 1 (C#).</summary>
-class Program
+internal static class Program
 {
-    // Объект создаётся в отдельном методе: после выхода из него обычных ссылок на объект нет.
-    // NoInlining не даёт компилятору встроить метод в Main и случайно удержать объект.
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    static WeakReference<Ingredient> CreateTemporary()
+    private static void Main()
     {
-        var temp = new Ingredient("Списанное молоко", 5, 10);
-        return new WeakReference<Ingredient>(temp);
-    }
+        OutputEncoding = System.Text.Encoding.UTF8;
+        WriteLine("=== УНИВЕРСИТЕТСКИЙ ВЕНДИНГ: ЛАБОРАТОРНАЯ РАБОТА 4 (C#) ===");
 
-    // Проверка тоже в отдельном методе: так в Main не остаётся временной переменной с ссылкой на объект.
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    static bool IsAlive(WeakReference<Ingredient> reference)
-    {
-        return reference.TryGetTarget(out _);
-    }
+        WriteLine("\n1. Абстрактный класс, наследники и полиморфизм");
+        var machine = new VendingCatalog("Вендинг в корпусе Б");
+        var coffee = new CoffeeProduct("Капучино", 130, 8, 250, true,
+            new ProductDetails("Кофе с молоком для короткого перерыва"));
+        var snack = new SnackProduct("Шоколадный батончик", 75, 12, 55);
+        var meal = new InstantMealProduct("Лапша быстрого приготовления", 110, 6, 5,
+            new ProductDetails("Горячее блюдо за 5 минут"));
 
-    static void Main()
-    {
-        Console.OutputEncoding = System.Text.Encoding.UTF8;
+        coffee.RegisterIn(machine);
+        snack.RegisterIn(machine);
+        meal.RegisterIn(machine);
+        machine.PrintProducts();
 
-        Console.WriteLine("=== 1. Ссылки и копии ===");
-        var first = new Ingredient("Молоко", 50, 100);
-        Ingredient second = first;   // не копия объекта, а вторая ссылка на тот же объект
-        second.Consume(10);          // меняем через вторую ссылку
-        Console.WriteLine($"first:  {first}");
-        Console.WriteLine($"second: {second}");
-        Console.WriteLine($"first == second: {first == second}");
+        WriteLine("\n2. Поверхностное копирование через MemberwiseClone()");
+        var shallow = coffee.ShallowCopy();
+        shallow.SetDetailsDescription("Описание изменено через поверхностную копию");
+        WriteLine("Оригинал: " + coffee.Describe());
+        WriteLine("Поверхностная копия: " + shallow.Describe());
 
-        Console.WriteLine("-- то же самое со структурой");
-        var priceA = new Money { Rubles = 150, Kopecks = 50 };
-        var priceB = priceA;         // копия значения, а не ссылка
-        priceB.Rubles = 300;         // меняем копию
-        Console.WriteLine($"priceA: {priceA}");
-        Console.WriteLine($"priceB: {priceB}");
+        WriteLine("\n3. Глубокое копирование и Clone()");
+        var deep = new CoffeeProduct(coffee);
+        deep.SetDetailsDescription("Собственное описание глубокой копии");
+        BaseProduct clone = coffee.Clone();
+        WriteLine("Оригинал: " + coffee.Describe());
+        WriteLine("Глубокая копия: " + deep.Describe());
+        WriteLine("Clone(): " + clone.Describe());
 
-        Console.WriteLine("\n=== 2. Композиция, агрегация и проверка правила ===");
-        var machine = new VendingMachine("Автомат-1", 40);                 // создан снаружи
-        var operatorOnDuty = new MachineOperator("Оператор-1", machine);   // получает готовый
+        WriteLine("\n4. Строки, this, статические члены и сравнение объектов");
+        string label = coffee.Name + " / " + snack.Name;
+        WriteLine("Конкатенация: " + label);
+        WriteLine("IndexOf: " + label.IndexOf("батончик", StringComparison.OrdinalIgnoreCase));
+        WriteLine("Substring: " + label.Substring(0, label.IndexOf(" / ", StringComparison.Ordinal)));
+        WriteLine("Сравнение строк: " + (string.Compare(coffee.Name, "Капучино", StringComparison.Ordinal) == 0));
+        coffee.SetPrice(135).SetPrice(140); // метод возвращает this
+        var sameCoffee = new CoffeeProduct("Капучино", 140, 8, 250, true);
+        var differentCoffee = new CoffeeProduct("Капучино", 140, 8, 300, true);
+        WriteLine("Одинаковые характеристики: " + coffee.Equals(sameCoffee));
+        WriteLine("Другой объём: " + coffee.Equals(differentCoffee));
+        WriteLine("HashCode: " + coffee.GetHashCode());
+        WriteLine("Создано товаров: " + BaseProduct.CreatedCount);
+
+        WriteLine("\n5. Продажа товаров через автомат");
+        var operatorOnDuty = new MachineOperator("Дежурный оператор", machine);
         operatorOnDuty.AddCoffee(20);
-        Console.WriteLine(machine);
-        machine.MakeCoffee();
-        machine.MakeCoffee();
-        machine.MakeCoffee();
-        Console.WriteLine("-- проверка правила: кофе закончился");
-        machine.MakeCoffee();
-        operatorOnDuty.StopMachine();
-        machine.MakeCoffee();
+        operatorOnDuty.AddChange(500);
         operatorOnDuty.StartMachine();
-        operatorOnDuty.AddCoffee(40);
-        Console.WriteLine(machine);
+        operatorOnDuty.AddCoffee(5);  // отказ: пополнение разрешено только при выключенном автомате
+        operatorOnDuty.AddChange(100); // отказ: размен пополняется только при выключенном автомате
+        operatorOnDuty.StartMachine(); // отказ: автомат уже работает
+        machine.MakeCoffee();
+        machine.SellProduct("Капучино", 50);  // отказ: недостаточно денег
+        machine.SellProduct("Капучино", 700); // отказ: недостаточно размена
+        machine.SellProduct("Капучино", 150); // цена 140 руб., сдача 10 руб.
+        machine.SellProduct("Шоколадный батончик", 100); // цена 75 руб., сдача 25 руб.
+        machine.SellProduct("Лапша быстрого приготовления", 120); // цена 110 руб., сдача 10 руб.
+        machine.PrintProducts();
+        machine.PrintJournal();
+        WriteLine(machine);
+        operatorOnDuty.StopMachine();
+        operatorOnDuty.StopMachine(); // отказ: автомат уже выключен
 
-        Console.WriteLine("\n=== 3. Освобождение ресурса: using и IDisposable ===");
-        using (var log = new SalesLog("Журнал смены"))
-        {
-            log.Record("Кофе", machine.MakeCoffee());
-            log.Record("Кофе", machine.MakeCoffee());
-            Console.WriteLine("-- выход из блока");
-        }
-        Console.WriteLine("-- блок закончился, журнал уже закрыт");
-        Console.WriteLine(machine);
-
-        Console.WriteLine("\n=== 4. Сборщик мусора ===");
-        var watcher = CreateTemporary();
-        Console.WriteLine("-- метод завершился, ссылок на объект больше нет");
-        Console.WriteLine($"объект жив: {IsAlive(watcher)}");
-        GC.Collect();                    // просьба собрать мусор
-        GC.WaitForPendingFinalizers();
-        Console.WriteLine("-- вызван GC.Collect()");
-        Console.WriteLine($"объект жив: {IsAlive(watcher)}");
-
-        Console.WriteLine("\n=== Конец программы ===");
+        WriteLine("\n=== Конец программы ===");
     }
 }
